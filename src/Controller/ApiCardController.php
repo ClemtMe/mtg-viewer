@@ -7,6 +7,7 @@ use App\Entity\Card;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Routing\Annotation\Route;
@@ -23,9 +24,22 @@ class ApiCardController extends AbstractController
     #[Route('/all', name: 'List all cards', methods: ['GET'])]
     #[OA\Put(description: 'Return all cards in the database')]
     #[OA\Response(response: 200, description: 'List all cards')]
-    public function cardAll(): Response
+    public function cardAll(Request $request): Response
     {
-        $cards = $this->entityManager->getRepository(Card::class)->findAll();
+
+        $page = $request->query->getInt('page', 1);
+        $limit = $request->query->getInt('limit', 10);
+
+        $page = max(1, $page);
+        $limit = max(1, min(100, $limit));
+
+        $cards = $this->entityManager->getRepository(Card::class)
+            ->createQueryBuilder('c')
+            ->setMaxResults($limit)
+            ->setFirstResult(($page - 1) * $limit)
+            ->getQuery()
+            ->getResult();
+        $this->logger->debug('Fetch ' . count($cards) . ' cards');
         return $this->json($cards);
     }
 
@@ -40,6 +54,7 @@ class ApiCardController extends AbstractController
         if (!$card) {
             return $this->json(['error' => 'Card not found'], 404);
         }
+        $this->logger->debug('Fetch card ' . $uuid);
         return $this->json($card);
     }
 }
