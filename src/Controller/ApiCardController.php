@@ -57,4 +57,27 @@ class ApiCardController extends AbstractController
         $this->logger->debug('Fetch card ' . $uuid);
         return $this->json($card);
     }
+
+    #[Route('/search/{name}', name: 'Search card', methods: ['GET'])]
+    #[OA\Parameter(name: 'name', description: 'Name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
+    #[OA\Put(description: 'Get a card by name')]
+    #[OA\Response(response: 200, description: 'Show card')]
+    #[OA\Response(response: 404, description: 'Card not found')]
+    public function searchCard(string $name): Response
+    {
+        $cards = $this->entityManager->getRepository(Card::class)
+            ->createQueryBuilder('c')
+            ->where('c.name LIKE :name')
+            ->setParameter('name', '%' . $name . '%')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult();
+
+        if (empty($cards)) {
+            return $this->json(['error' => 'Card not found'], 404);
+        }
+        $card = $cards[0];
+        $this->logger->debug('Fetch card ' . $card->getUuid());
+        return $this->json($card);
+    }
 }
