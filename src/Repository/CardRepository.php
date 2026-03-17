@@ -32,4 +32,18 @@ class CardRepository extends ServiceEntityRepository
         ;
         return array_column($result, 'uuid');
     }
+
+    public function getAllBySetCode(int $page, int $limit, ?string $setCode): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->setMaxResults($limit)
+            ->setFirstResult(($page - 1) * $limit);
+
+        if ($setCode) {
+            $qb->where('c.setCode = :setCode')
+                ->setParameter('setCode', $setCode);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }
