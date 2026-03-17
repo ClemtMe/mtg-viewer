@@ -41,21 +41,6 @@ class ApiCardController extends AbstractController
         return $this->json($cards);
     }
 
-    #[Route('/{uuid}', name: 'Show card', methods: ['GET'])]
-    #[OA\Parameter(name: 'uuid', description: 'UUID of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))]
-    #[OA\Get(description: 'Get a card by UUID')]
-    #[OA\Response(response: 200, description: 'Show card')]
-    #[OA\Response(response: 404, description: 'Card not found')]
-    public function cardShow(string $uuid): Response
-    {
-        $card = $this->entityManager->getRepository(Card::class)->findOneBy(['uuid' => $uuid]);
-        if (!$card) {
-            return $this->json(['error' => 'Card not found'], 404);
-        }
-        $this->logger->debug('Fetch card ' . $uuid);
-        return $this->json($card);
-    }
-
     #[Route('/search/{name}', name: 'Search card', methods: ['GET'])]
     #[OA\Parameter(name: 'name', description: 'Name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
     #[OA\Get(description: 'Get a card by name')]
@@ -78,4 +63,40 @@ class ApiCardController extends AbstractController
         $this->logger->debug('Fetch card ' . $card->getUuid());
         return $this->json($card);
     }
+
+    #[Route('/sets', name: 'List all set codes', methods: ['GET'])]
+    #[OA\Get(description: 'Return a list of all unique set codes available in the database.')]
+    #[OA\Response(response: 200, description: 'List of set codes')]
+    public function listSetCodes(): Response
+    {
+        $this->logger->debug('Fetch set codes');
+        $setCodes = $this->entityManager->getRepository(Card::class)
+            ->createQueryBuilder('c')
+            ->select('DISTINCT c.setCode')
+            ->where('c.setCode IS NOT NULL')
+            ->orderBy('c.setCode', 'ASC')
+            ->getQuery()
+            ->getScalarResult();
+
+        $result = array_column($setCodes, 'setCode');
+
+        $this->logger->debug('Fetch ' . count($result) . ' unique set codes');
+        return $this->json($result);
+    }
+
+    #[Route('/{uuid}', name: 'Show card', methods: ['GET'])]
+    #[OA\Parameter(name: 'uuid', description: 'UUID of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))]
+    #[OA\Get(description: 'Get a card by UUID')]
+    #[OA\Response(response: 200, description: 'Show card')]
+    #[OA\Response(response: 404, description: 'Card not found')]
+    public function cardShow(string $uuid): Response
+    {
+        $card = $this->entityManager->getRepository(Card::class)->findOneBy(['uuid' => $uuid]);
+        if (!$card) {
+            return $this->json(['error' => 'Card not found'], 404);
+        }
+        $this->logger->debug('Fetch card ' . $uuid);
+        return $this->json($card);
+    }
+
 }

@@ -1,5 +1,13 @@
-export async function fetchAllCards() {
-    const response = await fetch('/api/card/all');
+export async function fetchAllCards({ setCode = null, page = 1, limit = 100 } = {}) {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('limit', limit);
+
+    if (setCode) {
+        params.append('setCode', setCode);
+    }
+
+    const response = await fetch(`/api/card/all?${params.toString()}`);
     if (!response.ok) throw new Error('Failed to fetch cards');
     const result = await response.json();
     return result;
@@ -21,4 +29,10 @@ export async function searchCard(name) {
     const card = await response.json();
     card.text = card.text.replaceAll('\\n', '\n');
     return card;
+}
+
+export async function fetchSetCodes() {
+    const response = await fetch('/api/card/sets');
+    if (!response.ok) throw new Error('Failed to fetch set codes');
+    return await response.json();
 }
